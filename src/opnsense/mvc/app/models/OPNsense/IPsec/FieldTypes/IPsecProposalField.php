@@ -156,6 +156,9 @@ class IPsecProposalField extends BaseListField
             }
 
             $dhgroups = [
+                'modp768' => 'DH1',
+                'modp1024' => 'DH2',
+                'modp1536' => 'DH5',
                 'modp2048' => 'DH14',
                 'modp3072' => 'DH15',
                 'modp4096' => 'DH16',
@@ -172,23 +175,31 @@ class IPsecProposalField extends BaseListField
                 'x25519' => 'DH31, Modern EC',
                 'x448' => 'DH32, Modern EC'
             ];
+            $insecure_options = ['sha1', 'modp768', 'modp1024', 'modp1536'];
             $gcm_prf_options = [];
             foreach (['aes128', 'aes192', 'aes256', 'aes128gcm16', 'aes192gcm16', 'aes256gcm16'] as $encalg) {
-                foreach (['sha256', 'sha384', 'sha512', 'aesxcbc'] as $intalg) {
+                foreach (['sha1', 'sha256', 'sha384', 'sha512', 'aesxcbc'] as $intalg) {
                     foreach ($dhgroups as $dhgroup => $descr) {
+                        $optgroup = 'Miscellaneous';
+                        if (in_array($dhgroup, $insecure_options)) {
+                            $optgroup = 'Miscellaneous (Insecure)';
+                        }
                         $cipher = "{$encalg}-{$intalg}-{$dhgroup}";
                         if (strpos($encalg, 'gcm') !== false && $this->phase != '1') {
                             /* only relevant for phase 2 entries, see comment in AeadPhase1() */
                             $gcm_prf_options[$cipher] = [
                                 'value' => $cipher . " [{$descr}]",
-                                'optgroup' => gettext('Miscellaneous')
+                                'optgroup' => gettext($optgroup)
                             ];
                             $cipher = "{$encalg}-{$dhgroup}";
+                        }
+                        if (in_array($intalg, $insecure_options)) {
+                            $optgroup = 'Miscellaneous (Insecure)';
                         }
                         if (empty(self::$internalCacheOptionList[$this->internalCacheKey][$cipher])) {
                             self::$internalCacheOptionList[$this->internalCacheKey][$cipher] = [
                                 'value' => $cipher . " [{$descr}]",
-                                'optgroup' => gettext('Miscellaneous')
+                                'optgroup' => gettext($optgroup)
                             ];
                         } elseif (empty(self::$internalCacheOptionList[$this->internalCacheKey][$cipher]['value'])) {
                             self::$internalCacheOptionList[$this->internalCacheKey][$cipher]['value'] = $cipher . " [{$descr}]";
